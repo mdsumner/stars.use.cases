@@ -1,0 +1,87 @@
+---
+title: "Use cases for stars"
+author: "Michael Sumner"
+date: "4 April 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Use cases and discussion document for [stars](https://github.com/edzer/stars/)
+
+## Raster logic in a general API
+
+The underlying logic of an implicit cell index and a transformation for its centre is provided by the `raster` package, and should exist separately of the implementation in either raster or in stars. 
+
+
+## Animal tracking MCMC estimation
+
+Animal tracking estimation, as output by `tripEstimation`, `SGAT` or `bsam`. 
+
+We generate long MCMC chains, posterior samples at arbitrary observation-times with longitude, latitude from modelling animal location. The observation times are (usually) roughly twice-daily at local twilight, or at more arbitrary times whenever the Argos Service observes the tag, or perhaps other derived or quality filtered locations from GPS. To summarize these we developed a system of sparse and abstract 3D rasters, with a time slice at each observation time, and with each observation stored as a small window matrix from a "parent grid". Since the posterior samples are spatially dense it makes sense to to "bin" them into a local discretized window, and store a local matrix for every observation - this things the chains immensely and provides a continuous spatial model of positional-likelihood or other metric of intensity (like time-spent). 
+
+This was implemented long ago in `tripEstimation::pimg` (on CRAN) and sees a more modern version in `SGAT::Pimage` (at github.com/SWotherspoon/SGAT). I've been toying with a new "tidy" version that uses raster/dplyr as the binning engine, by coalescing tables of cell counts using `group_by` after identifying cells with raster. This is as fast as the fastest we could make the old matrix versions, that used `tabulate` with a simple affine transform and local indexing within a parent matrix to avoid expanding the parent by time. 
+
+It's really straightforward to do this, and it makes for  very compelling summary engine for building duration-based metrics of location-probability, time-spent surfaces and animations of these, from large collections of tracking data. The local window model scales up to any number of tracking events, since it collapses long MCMC chains into very efficient discretized versions. There's an overhead to calculate any particular bin choice, and coordinate system of course but the results are so useful it makes a nice step from the model outputs to the result stage. 
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+## Overlapping, patchy time series from forecasts
+
+atmospheric forecast output from AMPS, the Antarctic Mesoscale Prediction System. 
+
+http://polarmet.osu.edu/AMPS/
+
+The "d1" grids are polar stereographic and regular at ~25km scale. They can be read easily enough via the GDAL GRIB driver, and in a `raster` context I add the correct CRS and extent so I can build a catalog of the files, index particular variables at time steps and pressure levels, and ultimately marry these with animal tracking data. (The wind vectors are a primary interest at the moment). 
+
+Each 12 hour period in the real world provides at least 27 hourly forecast periods that are delivered as a GRIB file. Each file has 250 bands (the first has 254 with longitude, latitude, sea ice, and land mask as special a special prelude 4 bands at the start of the first file). The bands are paired U, V wind vectors at several pressure levels, temperature at levels, pressure, and more - but each file corresponds to one forecast hourly period. 
+
+You are advised to avoid the "spin-up" time of the model, which means ignoring the first 12 hours of forecast and using the periods as near to the centre of the output period as possible. So near to 12-18 hours is good, but the 1-11 and 19-27 or so hours best avoided, for model spin-up and then for proximity from the real-time (presumably). We want to match high resolution seabird tracking data to these wind vectors, so choosing the right hourly periods from which to find match ups is an important topic - however there is so much model data that it's not always practical to have access to all of it. There are differing opinions on how problematic the spin-up time is, and certain applications have cached sparser time steps and so that output is already available and potentially useful. 
+
+The crux for AMPS then is that we have a dense time series that is regular in theory but has multiple instances to choose for a particular time step, and our access to it in places has overlaps as well as gaps that we can alternatively ignore or be concerned about, depending on our application. 
+
+These two examples both present an "irregular time step" that is not predictable or obvious for how to deal with it. It's actually reasonably straightforward to deal with these cases though, especially using data frames (to catalog the files, variables, time steps), using raster and rgdal (to drive the i-o and discretization and grid-logic) and tidy/database principles with dplyr to derive flexible summaries from cell-indexed pixel values. 
+
+
+## Raster library tools
+
+
+The raadtools package provides user-helpers for large collections of time series gridded data. 
+
+https://github.com/AustralianAntarcticDivision/raadtools
+
+Raadtools consists of a family of `read[x]` functions where `x` is a particular data set, such as "Optimally Interpolated Sea Surface Temperature". The synchronization tools keep the collection up to date on a daily basis, so the "object" data set is only ever virtual. 
+
+A actual object version of the raadtools collections is prototyped here, using R6 to give  a single object that understands the entire collection, can update itself about the collection and return subsets and summaries and extractions from it: 
+
+https://github.com/AustralianAntarcticDivision/raadtools/issues/33
+
+## Ggplot2 viewpoint
+
+There's no strong raster logic in ggplot2, partly because there's no properties that can be "extra" to the data frame structure. There are extension to ggplot2 like ggraph and ggforce that do provide those extras (I think). 
+
+tidygraph also shows how multiple tables can be used. 
+
+An implementation of an implicit cell index is here: https://github.com/r-gris/tabularaster/blob/master/R/geom-tabula.R
+
+
+## Curvilinear rasters
+
+https://github.com/mdsumner/angstroms
+
+
+## Dealing with NetCDF metadata
+
+https://github.com/r-gris/ncdump
+
+
+## Catalogues of raster grid metadta
+
+I constantly create bespoke rasters, an extent, crs and dimensions. It would be good to be able to refer to these by ID uniquely, rather than juggle the raster template (or the 4 values + crs). 
+
+This could also be used for well-known data sets, things like NSIDC that are really polar but are shipped only with longitude and latitude coordinates. 
