@@ -26,10 +26,6 @@ This was implemented long ago in `tripEstimation::pimg` (on CRAN) and sees a mor
 
 It's really straightforward to do this, and it makes for  very compelling summary engine for building duration-based metrics of location-probability, time-spent surfaces and animations of these, from large collections of tracking data. The local window model scales up to any number of tracking events, since it collapses long MCMC chains into very efficient discretized versions. There's an overhead to calculate any particular bin choice, and coordinate system of course but the results are so useful it makes a nice step from the model outputs to the result stage. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
 
 ## Overlapping, patchy time series from forecasts
 
