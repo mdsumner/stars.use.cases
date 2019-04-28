@@ -77,3 +77,11 @@ read_stars_tidync = function(.x, ..., select_var = NULL, proxy = TRUE) {
   }
   out
 }
+
+                                                     
+f = "~/Git/rasterwise/extdata/large-mem/pp_ens_mean_0.25deg_reg_v19.0e.nc"
+read_stars_tidync(f, longitude = longitude < -39, time = index <= 5)
+
+f = "~/Git/rasterwise/extdata/1D/test.nc"
+read_stars_tidync(f, z = z > 900)
+
